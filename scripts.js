@@ -12,16 +12,17 @@ function movePlayer(currentFrameTime) {
 
     const playerRect = player.getBoundingClientRect();
     const gameBoardRect = gameBoard.getBoundingClientRect();
+    const playerLeft = parseFloat(player.style.left) || 0;
 
     if (isMovingLeft) {
-        const newPosition = playerRect.left - (playerSpeed * deltaTime);
+        const newPosition = playerLeft - (playerSpeed * deltaTime);
         if (newPosition >= gameBoardRect.left) {
             player.style.left = `${newPosition}px`;
         }
     }
 
     if (isMovingRight) {
-        const newPosition = playerRect.left + (playerSpeed * deltaTime);
+        const newPosition = playerLeft + (playerSpeed * deltaTime);
         if (newPosition + playerRect.width <= gameBoardRect.right) {
             player.style.left = `${newPosition}px`;
         }
@@ -32,13 +33,4 @@ function movePlayer(currentFrameTime) {
 
 document.addEventListener("keydown", (event) => {
     if (event.key === "ArrowLeft") {
-        isMovingLeft = true;
-    } else if (event.key === "ArrowRight") {
-        isMovingRight = true;
-    }
-});
-
-document.addEventListener("keyup", (event) => {
-    if (event.key === "ArrowLeft") {
-        isMovingLeft = false;
-    } else
+        isMoving
