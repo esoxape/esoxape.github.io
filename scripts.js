@@ -1,23 +1,27 @@
 const player = document.getElementById("player");
 const gameBoard = document.getElementById("gameBoard");
-const playerSpeed = 5;
+const playerSpeed = 0.15;
 
 let isMovingLeft = false;
 let isMovingRight = false;
+let lastFrameTime = performance.now();
 
-function movePlayer() {
+function movePlayer(currentFrameTime) {
+    const deltaTime = currentFrameTime - lastFrameTime;
+    lastFrameTime = currentFrameTime;
+
     const playerRect = player.getBoundingClientRect();
     const gameBoardRect = gameBoard.getBoundingClientRect();
 
     if (isMovingLeft) {
-        const newPosition = playerRect.left - playerSpeed;
+        const newPosition = playerRect.left - (playerSpeed * deltaTime);
         if (newPosition >= gameBoardRect.left) {
             player.style.left = `${newPosition}px`;
         }
     }
 
     if (isMovingRight) {
-        const newPosition = playerRect.left + playerSpeed;
+        const newPosition = playerRect.left + (playerSpeed * deltaTime);
         if (newPosition + playerRect.width <= gameBoardRect.right) {
             player.style.left = `${newPosition}px`;
         }
@@ -37,9 +41,4 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keyup", (event) => {
     if (event.key === "ArrowLeft") {
         isMovingLeft = false;
-    } else if (event.key === "ArrowRight") {
-        isMovingRight = false;
-    }
-});
-
-requestAnimationFrame(movePlayer);
+    } else
