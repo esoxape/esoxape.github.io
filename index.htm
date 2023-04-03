@@ -19,7 +19,7 @@
 			background-color: red;
 			position: absolute;
 			bottom: 0;
-			left: 300;
+			left: 0;
 		}
 		.map {
             position: absolute;
@@ -34,6 +34,11 @@
 		<div class="map" id="map"></div>
         <div class="player" id="player"></div>
     </div>
-    <script src="scripts.js"></script>
-</body>
-</html>
+    <script>
+        const player = document.getElementById('player');
+        let playerPosX = 0;
+
+        const moveSpeed = 5;
+
+        function movePlayer() {
+            player.style.left = playerPosX + 'px';
