@@ -19,12 +19,19 @@
 			background-color: red;
 			position: absolute;
 			bottom: 0;
-			left: 0; /* Add this line */
+			left: 300;
 		}
+		.map {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+        }
 	</style>
 </head>
 <body>
     <div id="gameBoard">
+		<div class="map" id="map"></div>
         <div class="player" id="player"></div>
     </div>
     <script src="scripts.js"></script>
