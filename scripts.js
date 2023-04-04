@@ -273,7 +273,7 @@ function update(timestamp) {
 function getSunPosition() {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
-    const sunriseStart=sunrise.getMinutes();
+    const sunriseStart=sunrise.getMinutes()/60;
     const sunX = (canvas.width * (currentHour-sunriseStart)) / ((sunset-sunrise)/ (1000 * 60 * 60));
     console.log("sunx:", sunX);
   
