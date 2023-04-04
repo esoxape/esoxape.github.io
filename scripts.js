@@ -274,6 +274,7 @@ function getSunPosition() {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
     const sunX = (canvas.width * currentHour) / (sunset-sunrise);
+    console.log("sunx:", sunX);
   
     // Calculate the sun's Y-coordinate
     const midPoint = canvas.width / 2;
