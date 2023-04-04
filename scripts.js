@@ -248,7 +248,7 @@ function update(timestamp) {
 
         // Check for collision with enemy
         if (checkCollision(enemy, player.bullets[i])) {
-            enemy.hp -= 10;
+            if(enemy.hp>0)enemy.hp -= 10;
             bloodAndGore(player.bullets[i].x, player.bullets[i].y);
             player.bullets.splice(i, 1);
         } else if (player.bullets[i].x < 1 || player.bullets[i].x > canvas.width || player.bullets[i].y > 650 || player.bullets[i].y < 0) {
@@ -315,6 +315,13 @@ function draw() {
     ctx.fillStyle = "black";
     ctx.font = "bold 16px Arial";
     ctx.fillText("HP: " + player.hp, 10, 25);
+    // Draw monster HP bar
+    ctx.fillStyle = "red";
+    ctx.fillRect(canvas.width - (enemy.hp / 1000 * 100) - 10, 10, enemy.hp / 1000 * 100, 20);
+    // Draw monster HP text
+    ctx.fillStyle = "black";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("M HP: " + enemy.hp, canvas.width - 120, 25);
     // Draw bullets
     ctx.fillStyle = "black";
     for (const bullet of player.bullets) {
