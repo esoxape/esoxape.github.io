@@ -29,6 +29,18 @@ const enemy = {
     lastShot : Date.now(),
     hp:1000
 };
+  
+  function drawSun(x, y) {
+    const sunRadius = 30; // Radius of the sun
+  
+    ctx.beginPath();
+    ctx.arc(x, y, sunRadius, 0, 2 * Math.PI);
+    ctx.fillStyle = "yellow";
+    ctx.fill();
+    ctx.closePath();
+  }
+  
+  
 function handleKeyDown(event) {
     if (event.code === 'Space' && !isSpaceKeyDown) {
         isSpaceKeyDown = true;
@@ -110,7 +122,6 @@ function bloodAndGore(x, y) {
     for (let i = 0; i < numParticles; i++) {
         const angle = Math.random() * 2 * Math.PI;
         const speed = Math.random() * 200 + 100; // Random speed between 100 and 300
-
         const particle = {
             x: x,
             y: y,
@@ -220,17 +231,32 @@ function update(timestamp) {
         }
     }
 }
-
+function getSunPosition() {
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
+    const sunX = (canvas.width * currentHour) / 24;
+  
+    // Calculate the sun's Y-coordinate
+    const midPoint = canvas.width / 2;
+    const sunYmax = 20;
+    const sunYmin = 650;
+    const a = (sunYmin - sunYmax) / (midPoint ** 2);
+    const sunY = a * (sunX - midPoint) ** 2 + sunYmax;
+  
+    return { x: sunX, y: sunY };
+  }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);  
+    const sunPosition = getSunPosition();
+    drawSun(sunPosition.x, sunPosition.y);
     
     // Load the image
     const playerImage = new Image();
     const monsterImage = new Image();
     if(whichWay==0)
     {
-    playerImage.src = "heroright.jpg";
+        playerImage.src = "heroright.jpg";
     }
     else
     {
