@@ -341,5 +341,9 @@ function gameLoop(timestamp) {
     draw();
     requestAnimationFrame(gameLoop);
 }
-getSunriseSunset();
-requestAnimationFrame(gameLoop);
+async function startGame() {
+    await getSunriseSunset();
+    requestAnimationFrame(gameLoop);
+}
+
+startGame();
