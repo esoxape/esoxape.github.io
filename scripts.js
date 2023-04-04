@@ -46,6 +46,7 @@ function getUserLocation() {
       );
     });
   }
+  let weatherData = null;
   async function getSunriseSunset() {
     try {
       const location = await getUserLocation();
@@ -57,9 +58,7 @@ function getUserLocation() {
       if (data.status === "OK") {
         sunrise = new Date(data.results.sunrise);
         sunset = new Date(data.results.sunset);
-  
-        console.log("Sunrise:", sunrise);
-        console.log("Sunset:", sunset);
+        weatherData = await getWeatherData(location.latitude, location.longitude);
       } else {
         console.error("Error fetching sunrise and sunset data.");
       }
@@ -273,7 +272,6 @@ function update(timestamp) {
 function getSunPosition() {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
-    console.log("sunrise:", sunrise);
     const sunriseStart=sunrise.getHours()+sunrise.getMinutes()/60;
     const sunX = (canvas.width * (currentHour-sunriseStart)) / ((sunset-sunrise)/ (1000 * 60 * 60));
   
@@ -333,9 +331,47 @@ function draw() {
         ctx.arc(particle.x, particle.y, particle.radius, 0, 2 * Math.PI);
         ctx.fill();
     }
+    drawWeatherInfo();
     ctx.globalAlpha = 1;
-
 }
+async function getWeatherData(latitude, longitude) {
+    const apiKey = "6d74b60ed2213b4977b460b30c862f4b";
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+  
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+  
+      if (data.cod === 200) {
+        return {
+          temperature: data.main.temp,
+          weatherDescription: data.weather[0].description,
+          cloudCover:data.clouds.all,
+        };
+      } else {
+        console.error("Error fetching weather data.");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+      return null;
+    }
+  }
+  function drawWeatherInfo() {
+    if (!weatherData) return;
+  
+    ctx.fillStyle = "black";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText(
+      `Temperature: ${weatherData.temperature.toFixed(1)}°C`,
+      10,
+      50
+    );
+    ctx.fillText(`Weather: ${weatherData.weatherDescription}`, 10, 70);
+    ctx.fillText(`Cloud Cover: ${weatherData.cloudCover}%`, 10, 90); 
+  }
+  
+  
 function gameLoop(timestamp) {
     update(timestamp);
     draw();
@@ -345,5 +381,4 @@ async function startGame() {
     await getSunriseSunset();
     requestAnimationFrame(gameLoop);
 }
-
 startGame();
