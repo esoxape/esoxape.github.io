@@ -5,6 +5,8 @@ let whichWay=0;
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 let isSpaceKeyDown = false;
+var sunrise = null;
+var sunset = null;
 const bloodParticles = [];
 const player = {
     x: 10,
@@ -29,6 +31,43 @@ const enemy = {
     lastShot : Date.now(),
     hp:1000
 };
+function getUserLocation() {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          reject(error);
+        }
+      );
+    });
+  }
+  async function getSunriseSunset() {
+    try {
+      const location = await getUserLocation();
+      const url = `https://api.sunrise-sunset.org/json?lat=${location.latitude}&lng=${location.longitude}&formatted=0`;
+  
+      const response = await fetch(url);
+      const data = await response.json();
+  
+      if (data.status === "OK") {
+        sunrise = new Date(data.results.sunrise);
+        sunset = new Date(data.results.sunset);
+  
+        console.log("Sunrise:", sunrise);
+        console.log("Sunset:", sunset);
+      } else {
+        console.error("Error fetching sunrise and sunset data.");
+      }
+    } catch (error) {
+      console.error("Error getting user location:", error);
+    }
+  }
+  
   
   function drawSun(x, y) {
     const sunRadius = 30; // Radius of the sun
@@ -234,7 +273,7 @@ function update(timestamp) {
 function getSunPosition() {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
-    const sunX = (canvas.width * currentHour) / 24;
+    const sunX = (canvas.width * currentHour) / (sunset-sunrise);
   
     // Calculate the sun's Y-coordinate
     const midPoint = canvas.width / 2;
@@ -300,4 +339,5 @@ function gameLoop(timestamp) {
     draw();
     requestAnimationFrame(gameLoop);
 }
+getSunriseSunset();
 requestAnimationFrame(gameLoop);
