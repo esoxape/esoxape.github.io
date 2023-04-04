@@ -4,6 +4,53 @@ const shootSound = new Audio("minigun.mp3");
 let whichWay=0;
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
+class Cloud {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      this.width = 120;
+      this.height = 80;
+      this.speed = 50; // pixels per second
+    }
+  
+    update(dt) {
+      this.x += this.speed * dt;
+      if (this.x > canvas.width) {
+        this.x = -this.width;
+      }
+    }
+  
+    draw() {
+      ctx.fillStyle = "rgba(211, 211, 211, 0.8)";
+      const numCircles = 6;
+      const circleRadius = this.height / 2;
+  
+      for (let i = 0; i < numCircles; i++) {
+        const circleX = this.x + (i * this.width) / (numCircles - 1);
+        const circleY = this.y + circleRadius;
+        ctx.beginPath();
+        ctx.arc(circleX, circleY, circleRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  }
+  
+  const clouds = [];
+
+  function generateClouds() {
+    if (weatherData) {
+      let numberOfClouds =0
+      if(weatherData.cloudCover==100)numberOfClouds = 100;
+      else numberOfClouds = Math.floor((weatherData.cloudCover / 100) * 20); // How many clouds // How many clouds
+      for (let i = 0; i < numberOfClouds; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * 120; // Random height 
+        clouds.push(new Cloud(x, y));
+      }
+    }
+  }
+    
 let isSpaceKeyDown = false;
 var sunrise = null;
 var sunset = null;
@@ -175,6 +222,7 @@ function bloodAndGore(x, y) {
 function update(timestamp) {
     const dt = (timestamp - lastTimestamp) / 1000; // time difference in seconds
     lastTimestamp = timestamp;
+    clouds.forEach((cloud) => cloud.update(dt));
     //enemy movement
     if (player.x < enemy.x) {
         enemy.x -= enemy.speed * dt;
@@ -288,9 +336,8 @@ function getSunPosition() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);  
     const sunPosition = getSunPosition();
-    drawSun(sunPosition.x, sunPosition.y);
-    
-    // Load the image
+    drawSun(sunPosition.x, sunPosition.y);    
+    clouds.forEach((cloud) => cloud.draw());
     const playerImage = new Image();
     const monsterImage = new Image();
     if(whichWay==0)
@@ -321,7 +368,7 @@ function draw() {
     // Draw monster HP text
     ctx.fillStyle = "black";
     ctx.font = "bold 16px Arial";
-    ctx.fillText("M HP: " + enemy.hp, canvas.width - 120, 25);
+    ctx.fillText("M HP: " + enemy.hp, canvas.width - 110, 25);
     // Draw bullets
     ctx.fillStyle = "black";
     for (const bullet of player.bullets) {
@@ -386,6 +433,8 @@ function gameLoop(timestamp) {
 }
 async function startGame() {
     await getSunriseSunset();
+    generateClouds();
     requestAnimationFrame(gameLoop);
-}
+  }
+  
 startGame();
