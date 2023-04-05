@@ -333,7 +333,7 @@ function update(timestamp) {
         chunks[i].rotation += chunks[i].rotationSpeed * dt; // Update chunk rotation
         chunks[i].ySpeed += 500 * dt; // Apply gravity to chunks' ySpeed
         bloodCounterChunks++;
-        if(bloodCounterChunks==10)
+        if(bloodCounterChunks==50)
         {
         bloodAndGore(chunks[i].x, chunks[i].y, 2);
         bloodCounterChunks=0;
