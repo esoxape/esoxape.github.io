@@ -44,15 +44,25 @@ update(dt) {
   }
   function explodeEnemy(x, y) {
     for (let i = 0; i < 9; i++) {
-        const angle = (Math.random() * Math.PI)+180;
-        const speed = Math.random() * 300 + 100;
+        let x1 = 13 + x;
+        let y1 = 20 + y;
+        if (i == 1 || i == 4 || i == 7) x1 = x1 + 26;
+        if (i == 2 || i == 5 || i == 8) x1 = x1 + 26 + 26;
+        if (i > 2 && i < 6) y1 = y1 + 40;
+        if (i > 5) y1 = y1 + 40 + 40;
+
+        const minAngle = 0 * (Math.PI / 180); 
+        const maxAngle = 100 * (Math.PI / 180); 
+        const angle = Math.random() * (maxAngle - minAngle) + minAngle; 
+
+        const speed = Math.random() * 300 + 200;
         const chunk = {
-            x: x,
-            y: y,
+            x: x1,
+            y: y1,
             width: 26,
             height: 40,
             xSpeed: Math.cos(angle) * speed,
-            ySpeed: Math.sin(angle) * speed,
+            ySpeed: -Math.sin(angle) * speed, 
             rotation: 0,
             rotationSpeed: Math.random() * 2 * Math.PI - Math.PI, // Random rotation speed between -π and π
             image: chunkImages[i]
@@ -60,6 +70,8 @@ update(dt) {
         chunks.push(chunk);
     }
 }
+
+
 
   const clouds = [];
 
@@ -433,6 +445,10 @@ function draw() {
         ctx.rotate(chunk.rotation);
         ctx.drawImage(chunk.image, -chunk.width / 2, -chunk.height / 2, chunk.width, chunk.height);
         ctx.restore();
+        if (chunk.y > 610 && chunk.ySpeed>0) {
+            chunk.y = 610;
+            chunk.ySpeed = 0;
+        }
     }
     ctx.globalAlpha = 1;
 }
