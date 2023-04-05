@@ -53,7 +53,8 @@ update(dt) {
 
         const minAngle = 0 * (Math.PI / 180); 
         const maxAngle = 100 * (Math.PI / 180); 
-        const angle = Math.random() * (maxAngle - minAngle) + minAngle; 
+        const angley = Math.random() * (maxAngle - minAngle) + minAngle; 
+        const anglex=Math.floor(Math.random() * 101) - 50;
 
         const speed = Math.random() * 300 + 200;
         const chunk = {
@@ -61,8 +62,8 @@ update(dt) {
             y: y1,
             width: 26,
             height: 40,
-            xSpeed: Math.cos(angle) * speed,
-            ySpeed: -Math.sin(angle) * speed, 
+            xSpeed: Math.cos(anglex) * speed/2,
+            ySpeed: -Math.sin(angley) * speed*2, 
             rotation: 0,
             rotationSpeed: Math.random() * 2 * Math.PI - Math.PI, // Random rotation speed between -π and π
             image: chunkImages[i]
@@ -334,7 +335,7 @@ function update(timestamp) {
         bloodCounterChunks++;
         if(bloodCounterChunks==10)
         {
-        bloodAndGore(chunks[i].x, chunks[i].y, 1);
+        bloodAndGore(chunks[i].x, chunks[i].y, 2);
         bloodCounterChunks=0;
         }
     }
