@@ -4,6 +4,7 @@ const shootSound = new Audio("minigun.mp3");
 let whichWay=0;
 const chunkImages = [];
 const chunks = [];
+const bloodyGround=[];
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 function loadChunkImages() {
@@ -275,18 +276,26 @@ function update(timestamp) {
     // Shoot bullets at the player
     const now = Date.now();
     if (now - enemy.lastShot > 1000 && enemy.hp>0) {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const bulletSpeed = 500;
+
         const bullet = {
-            x: enemy.x - 10,
+            x: enemy.x,
             y: enemy.y + 20,
             width: 5,
             height: 5,
-            speed: -500,
+            xSpeed: (dx / distance) * bulletSpeed,
+            ySpeed: (dy / distance) * bulletSpeed,
         };
         enemy.bullets.push(bullet);
         enemy.lastShot = now;
     }
+
     for (let i = 0; i < enemy.bullets.length; i++) {
-        enemy.bullets[i].x += enemy.bullets[i].speed * dt;
+        enemy.bullets[i].x += enemy.bullets[i].xSpeed * dt;
+        enemy.bullets[i].y += enemy.bullets[i].ySpeed * dt;
 
         // Check for collision with player
         if (checkCollision(player, enemy.bullets[i])) {
@@ -298,6 +307,7 @@ function update(timestamp) {
             enemy.bullets.splice(i, 1);
         }
     }
+
     if (keys["ArrowRight"]) {
         whichWay=0;
         player.x += player.speed * dt;
