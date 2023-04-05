@@ -437,6 +437,7 @@ function draw() {
     for (const bullet of player.bullets) {
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
+    ctx.fillStyle = "green";
     for (const bullet of enemy.bullets) {
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
