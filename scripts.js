@@ -2,8 +2,17 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const shootSound = new Audio("minigun.mp3");
 let whichWay=0;
+const chunkImages = [];
+const chunks = [];
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
+function loadChunkImages() {
+    for (let i = 1; i <= 9; i++) {
+        const img = new Image();
+        img.src = `${i}.jpg`;
+        chunkImages.push(img);
+    }
+}
 class Cloud {
     constructor(x, y) {
       this.x = x;
@@ -11,15 +20,13 @@ class Cloud {
       this.width = 120;
       this.height = 80;
       this.speed = 50; // pixels per second
-    }
-  
-    update(dt) {
+    }  
+update(dt) {
       this.x += this.speed * dt;
       if (this.x > canvas.width) {
         this.x = -this.width;
       }
     }
-  
     draw() {
       ctx.fillStyle = "rgba(211, 211, 211, 0.8)";
       const numCircles = 6;
@@ -35,7 +42,25 @@ class Cloud {
       }
     }
   }
-  
+  function explodeEnemy(x, y) {
+    for (let i = 0; i < 9; i++) {
+        const angle = (Math.random() * Math.PI)+180;
+        const speed = Math.random() * 300 + 100;
+        const chunk = {
+            x: x,
+            y: y,
+            width: 26,
+            height: 40,
+            xSpeed: Math.cos(angle) * speed,
+            ySpeed: Math.sin(angle) * speed,
+            rotation: 0,
+            rotationSpeed: Math.random() * 2 * Math.PI - Math.PI, // Random rotation speed between -π and π
+            image: chunkImages[i]
+        };
+        chunks.push(chunk);
+    }
+}
+
   const clouds = [];
 
   function generateClouds() {
@@ -201,8 +226,8 @@ function checkCollision(obj1, obj2) {
            obj1.y < obj2.y + obj2.height &&
            obj1.y + obj1.height > obj2.y;
 }
-function bloodAndGore(x, y) {
-    const numParticles = 50;
+function bloodAndGore(x, y, rad) {
+    const numParticles = 100;
 
     for (let i = 0; i < numParticles; i++) {
         const angle = Math.random() * 2 * Math.PI;
@@ -210,7 +235,7 @@ function bloodAndGore(x, y) {
         const particle = {
             x: x,
             y: y,
-            radius: Math.random() * 2 + 1, // Random radius between 1 and 3
+            radius: Math.random() * rad, // Random radius between 1 and 3
             xSpeed: Math.cos(angle) * speed,
             ySpeed: Math.sin(angle) * speed,
             alpha: 1,
@@ -219,6 +244,7 @@ function bloodAndGore(x, y) {
         bloodParticles.push(particle);
     }
 }
+let bloodCounterChunks=0;
 function update(timestamp) {
     const dt = (timestamp - lastTimestamp) / 1000; // time difference in seconds
     lastTimestamp = timestamp;
@@ -235,7 +261,7 @@ function update(timestamp) {
     }
     // Shoot bullets at the player
     const now = Date.now();
-    if (now - enemy.lastShot > 1000) {
+    if (now - enemy.lastShot > 1000 && enemy.hp>0) {
         const bullet = {
             x: enemy.x - 10,
             y: enemy.y + 20,
@@ -252,7 +278,7 @@ function update(timestamp) {
         // Check for collision with player
         if (checkCollision(player, enemy.bullets[i])) {
             player.hp -= 10;
-            bloodAndGore(enemy.bullets[i].x,enemy.bullets[i].y)
+            bloodAndGore(enemy.bullets[i].x,enemy.bullets[i].y, 2)
             enemy.bullets.splice(i, 1);
         }
         else if (enemy.bullets[i].x < 1 || enemy.bullets[i].x > canvas.width) {
@@ -273,7 +299,7 @@ function update(timestamp) {
     if (keys["Space"]) {
         shoot();
     }
-
+    
     // Gravity and Jump
     if (!player.grounded) {
         // apply gravity
@@ -287,7 +313,20 @@ function update(timestamp) {
             player.jumping = false;
         }
     }
-    
+    // Update chunks
+    for (let i = 0; i < chunks.length; i++) {
+        chunks[i].x += chunks[i].xSpeed * dt;
+        chunks[i].y += chunks[i].ySpeed * dt;
+        chunks[i].rotation += chunks[i].rotationSpeed * dt; // Update chunk rotation
+        chunks[i].ySpeed += 500 * dt; // Apply gravity to chunks' ySpeed
+        bloodCounterChunks++;
+        if(bloodCounterChunks==10)
+        {
+        bloodAndGore(chunks[i].x, chunks[i].y, 1);
+        bloodCounterChunks=0;
+        }
+    }
+
 
     // Update player bullets
     for (let i = 0; i < player.bullets.length; i++) {
@@ -295,9 +334,10 @@ function update(timestamp) {
         player.bullets[i].y += player.bullets[i].ySpeed * dt; // Update y position
 
         // Check for collision with enemy
-        if (checkCollision(enemy, player.bullets[i])) {
+        if (checkCollision(enemy, player.bullets[i]) && enemy.hp>0) {
             if(enemy.hp>0)enemy.hp -= 10;
-            bloodAndGore(player.bullets[i].x, player.bullets[i].y);
+            if(enemy.hp==0) explodeEnemy(enemy.x, enemy.y);
+            bloodAndGore(player.bullets[i].x, player.bullets[i].y, 1);
             player.bullets.splice(i, 1);
         } else if (player.bullets[i].x < 1 || player.bullets[i].x > canvas.width || player.bullets[i].y > 650 || player.bullets[i].y < 0) {
             player.bullets.splice(i, 1);
@@ -354,7 +394,7 @@ function draw() {
     ctx.fillRect(0, 650, canvas.width, canvas.height - 600);
     // Draw the player/monster
     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-    ctx.drawImage(monsterImage, enemy.x, enemy.y, enemy.width, enemy.height);
+    if(enemy.hp>0)ctx.drawImage(monsterImage, enemy.x, enemy.y, enemy.width, enemy.height);
     // Draw HP bar
     ctx.fillStyle = "red";
     ctx.fillRect(10, 10, player.hp, 20);
@@ -386,6 +426,14 @@ function draw() {
         ctx.fill();
     }
     drawWeatherInfo();
+    // Draw chunks
+    for (const chunk of chunks) {
+        ctx.save();
+        ctx.translate(chunk.x + chunk.width / 2, chunk.y + chunk.height / 2);
+        ctx.rotate(chunk.rotation);
+        ctx.drawImage(chunk.image, -chunk.width / 2, -chunk.height / 2, chunk.width, chunk.height);
+        ctx.restore();
+    }
     ctx.globalAlpha = 1;
 }
 async function getWeatherData(latitude, longitude) {
@@ -434,7 +482,7 @@ function gameLoop(timestamp) {
 async function startGame() {
     await getSunriseSunset();
     generateClouds();
+    loadChunkImages();
     requestAnimationFrame(gameLoop);
-  }
-  
+  }  
 startGame();
