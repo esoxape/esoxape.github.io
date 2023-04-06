@@ -192,30 +192,48 @@ document.addEventListener("keyup", (e) => {
 let lastTimestamp = 0;
 let timeO = Date.now();
 
+let mouseX = 300;
+let mouseY = 300;
+
+// Listen for mouse movement and update mouseX and mouseY
+document.addEventListener('mousemove', (event) => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+});
+
 function shoot() {
     const now = Date.now();
     if (now - timeO < 25) {
         return;
-    }    
-    const min = -100;
-    const max = 100;
-    const randomNum = Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
+    const bulletX = player.x + 25 + player.width / 2;
+    const bulletY = player.y + player.height / 2;
+
+    // Calculate the direction vector (dx, dy) based on the mouse position and bullet position
+    const dx = mouseX - bulletX;
+    const dy = mouseY - bulletY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Normalize the direction vector to have a length of 1
+    const normalizedDx = dx / distance;
+    const normalizedDy = dy / distance;
+
+    const bulletSpeed = 1500;
+
     let bullet = {
-        x: player.x + 25+player.width / 2,
-        y: player.y + player.height / 2,
+        x: bulletX,
+        y: bulletY,
         width: 5,
         height: 5,
-        speed: 1500,
-        ySpeed: randomNum,
-    }
-    if(whichWay==1)
-    {
-        bullet.speed=-1500
-        bullet.x=bullet.x-50
-    }
+        xSpeed: normalizedDx * bulletSpeed,
+        ySpeed: normalizedDy * bulletSpeed,
+    };
+
     player.bullets.push(bullet);
     timeO = now;
 }
+
 
 function update(timestamp) {
     const dt = (timestamp - lastTimestamp) / 1000; // time difference in seconds

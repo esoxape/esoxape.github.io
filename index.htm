@@ -11,9 +11,42 @@
     </style>
 </head>
 <body>
-	<p>Best game ever</p>
-    <canvas id="gameCanvas" width="1200" height="800"></canvas>
+    <p>Best game ever</p>
+    <button id="blasterMasterBtn">Blastermaster</button>
+    <button id="solstralningBtn">Solstrålning</button>
+    <canvas id="gameCanvas" width="1200" height="800" style="display:none;"></canvas>
     <p>Arrows to move and jump, space to shoot</p>
-    <script src="scripts.js"></script>
+    <script>
+        function loadScript(src) {
+            // Remove existing event listeners
+            window.removeEventListener('keydown', window.keydownHandler);
+            window.removeEventListener('keyup', window.keyupHandler);
+
+            var existingScript = document.getElementById('dynamicScript');
+            if (existingScript) {
+                existingScript.remove();
+            }
+
+            // Clear canvas and recreate it
+            var oldCanvas = document.getElementById('gameCanvas');
+            var newCanvas = oldCanvas.cloneNode(true);
+            newCanvas.style.display = 'block';
+            oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+
+            // Load new script
+            var script = document.createElement('script');
+            script.id = 'dynamicScript';
+            script.src = src;
+            document.body.appendChild(script);
+        }
+
+        document.getElementById('blasterMasterBtn').addEventListener('click', function() {
+            loadScript('scripts.js');
+        });
+
+        document.getElementById('solstralningBtn').addEventListener('click', function() {
+            loadScript('sun.js');
+        });
+    </script>
 </body>
 </html>
