@@ -102,8 +102,10 @@ const player = {
     gravity: 1000, // pixels per second squared
     grounded: true,
     hp:100,
-    bullets: []
+    bullets: [],
+    isFiring: Date.now()-1000
 };
+
 const enemy = {
     x: 1100,
     y: 500,
@@ -200,14 +202,13 @@ document.addEventListener('mousemove', (event) => {
     mouseX = event.clientX;
     mouseY = event.clientY;
 });
-
 function shoot() {
     const now = Date.now();
     if (now - timeO < 25) {
         return;
     }
 
-    const bulletX = player.x + 25 + player.width / 2;
+    const bulletX = player.x  +player.width;
     const bulletY = player.y + player.height / 2;
 
     // Calculate the direction vector (dx, dy) based on the mouse position and bullet position
@@ -220,20 +221,22 @@ function shoot() {
     const normalizedDy = dy / distance;
 
     const bulletSpeed = 1500;
-
     let bullet = {
         x: bulletX,
         y: bulletY,
         width: 5,
         height: 5,
-        xSpeed: normalizedDx * bulletSpeed,
+        speed: normalizedDx * bulletSpeed,
         ySpeed: normalizedDy * bulletSpeed,
     };
-
+    if(whichWay==1)
+    {
+        bullet.x=bullet.x-player.width;
+    }
     player.bullets.push(bullet);
+    player.isFiring=now;
     timeO = now;
 }
-
 
 function update(timestamp) {
     const dt = (timestamp - lastTimestamp) / 1000; // time difference in seconds
@@ -284,10 +287,6 @@ function update(timestamp) {
     } else {
         enemy.x += enemy.speed * dt;
     }
-    if (keys["ArrowLeft"]) {
-        player.x -= player.speed * dt;
-        whichWay=1;
-    }
     // Shoot bullets at the player
     const now = Date.now();
     if (now - enemy.lastShot > 1000 && enemy.hp>0) {
@@ -322,13 +321,16 @@ function update(timestamp) {
             enemy.bullets.splice(i, 1);
         }
     }
-
-    if (keys["ArrowRight"]) {
+    if (keys["KeyA"]) {
+      player.x -= player.speed * dt;
+      whichWay=1;
+  }
+    if (keys["KeyD"]) {
         whichWay=0;
         player.x += player.speed * dt;
     }
 
-    if (keys["ArrowUp"] && !player.jumping && player.grounded) {
+    if (keys["KeyW"] && !player.jumping && player.grounded) {
         player.jumping = true;
         player.grounded = false;
         player.jumpVelocity = -player.jumpHeight * 2; // initial jump velocity
@@ -439,6 +441,33 @@ function getSunPosition() {
   let frameCount = 0;
   let lastFpsUpdate = performance.now();
   let fps = 0;
+  function drawMuzzleFlame() {
+    if (Date.now() - player.isFiring < 25) {
+        const flameCount = 3;
+        const flameWidth = 30;
+        const flameHeight = 12;
+        const xOffset = whichWay === 0 ? player.width : 0;
+        const flameColors = ["red", "orange", "yellow"];
+
+        for (let i = 0; i < flameCount; i++) {
+            const randomHeight = Math.random() * 15; // Random value between 0 and 5
+            const randomOffsetX = Math.random() * 8 * (whichWay === 0 ? 1 : -1);
+            const flameColor = flameColors[i];
+
+            ctx.fillStyle = flameColor;
+            ctx.beginPath();
+            ctx.moveTo(player.x + xOffset, player.y + player.height / 2 - flameHeight / 2);
+            ctx.lineTo(player.x + xOffset + (whichWay === 0 ? flameWidth : -flameWidth) + randomOffsetX, player.y + player.height / 2 - flameHeight / 2 + randomHeight);
+            ctx.lineTo(player.x + xOffset, player.y + player.height / 2 + flameHeight / 2);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+}
+
+
+
+
 function draw() {  
     ctx.clearRect(0, 0, canvas.width, canvas.height);  
         // Draw bloodParticles.length
@@ -503,7 +532,7 @@ function draw() {
     ctx.fillText("M HP: " + enemy.hp, canvas.width - 110, 25);
     // Draw bullets
     ctx.fillStyle = "black";
-    for (const bullet of player.bullets) {
+    for (const bullet of player.bullets) { 
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
     ctx.fillStyle = "green";
@@ -531,6 +560,7 @@ function draw() {
             chunk.ySpeed = 0;
         }
     }
+    drawMuzzleFlame();
     ctx.globalAlpha = 1;
 }
 async function getWeatherData(latitude, longitude) {

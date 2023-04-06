@@ -15,25 +15,13 @@
     <button id="blasterMasterBtn">Blastermaster</button>
     <button id="solstralningBtn">Solstrålning</button>
     <canvas id="gameCanvas" width="1200" height="800" style="display:none;"></canvas>
-    <p>Arrows to move and jump, space to shoot</p>
+    <p>A to move left D to move right W to jump, space to shoot and aim with the mouse</p>
     <script>
         function loadScript(src) {
-            // Remove existing event listeners
-            window.removeEventListener('keydown', window.keydownHandler);
-            window.removeEventListener('keyup', window.keyupHandler);
-
             var existingScript = document.getElementById('dynamicScript');
             if (existingScript) {
                 existingScript.remove();
             }
-
-            // Clear canvas and recreate it
-            var oldCanvas = document.getElementById('gameCanvas');
-            var newCanvas = oldCanvas.cloneNode(true);
-            newCanvas.style.display = 'block';
-            oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
-
-            // Load new script
             var script = document.createElement('script');
             script.id = 'dynamicScript';
             script.src = src;
@@ -41,10 +29,12 @@
         }
 
         document.getElementById('blasterMasterBtn').addEventListener('click', function() {
+            document.getElementById('gameCanvas').style.display = 'block';
             loadScript('scripts.js');
         });
 
         document.getElementById('solstralningBtn').addEventListener('click', function() {
+            document.getElementById('gameCanvas').style.display = 'block';
             loadScript('sun.js');
         });
     </script>
