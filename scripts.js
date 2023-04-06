@@ -72,9 +72,6 @@ update(dt) {
         chunks.push(chunk);
     }
 }
-
-
-
   const clouds = [];
 
   function generateClouds() {
@@ -303,7 +300,7 @@ function update(timestamp) {
             bloodAndGore(enemy.bullets[i].x,enemy.bullets[i].y, 2)
             enemy.bullets.splice(i, 1);
         }
-        else if (enemy.bullets[i].x < 1 || enemy.bullets[i].x > canvas.width) {
+        else if (enemy.bullets[i].x < 1 || enemy.bullets[i].x > canvas.width || enemy.bullets[i].y>650) {
             enemy.bullets.splice(i, 1);
         }
     }
@@ -367,18 +364,22 @@ function update(timestamp) {
         }
     }
 
-    //update blood
+    // Update blood
     for (let i = bloodParticles.length - 1; i >= 0; i--) {
-        const particle = bloodParticles[i];
-    
-        particle.x += particle.xSpeed * dt;
-        particle.y += particle.ySpeed * dt;
-        particle.alpha -= 0.5 * dt;
-    
-        if (particle.alpha <= 0) {
-            bloodParticles.splice(i, 1);
-        }
+      const particle = bloodParticles[i];
+
+      particle.x += particle.xSpeed * dt;
+      particle.y += particle.ySpeed * dt;
+      particle.alpha -= 0.5 * dt;
+
+      // Apply gravity to blood particles
+      particle.ySpeed += player.gravity * dt;
+
+      if (particle.alpha <= 0) {
+          bloodParticles.splice(i, 1);
+      }
     }
+
 }
 function getSunPosition() {
     const currentTime = new Date();

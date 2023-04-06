@@ -1,0 +1,22 @@
+{
+  "name": "abc",
+  "version": "1.0.0",
+  "description": "api key",
+  "main": "scripts.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esoxape/esoxape.github.io.git"
+  },
+  "author": "hj",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/esoxape/esoxape.github.io/issues"
+  },
+  "homepage": "https://github.com/esoxape/esoxape.github.io#readme",
+  "dependencies": {
+    "dotenv": "^16.0.3"
+  }
+}
