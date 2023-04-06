@@ -4,7 +4,7 @@ const shootSound = new Audio("minigun.mp3");
 let whichWay=0;
 const chunkImages = [];
 const chunks = [];
-const bloodyGround=[];
+var bloodStainedSquares = [];
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 function loadChunkImages() {
@@ -370,17 +370,39 @@ function update(timestamp) {
 
       particle.x += particle.xSpeed * dt;
       particle.y += particle.ySpeed * dt;
-      particle.alpha -= 0.5 * dt;
+      if(bloodParticles[i].y<650)particle.alpha -= 0.5 * dt;
+      else particle.alpha -= 0.5 * dt*100;
 
       // Apply gravity to blood particles
       particle.ySpeed += player.gravity * dt;
-
+      if(bloodParticles[i].y>=650)addBloodStain(bloodParticles[i].x, bloodParticles[i].y);
       if (particle.alpha <= 0) {
           bloodParticles.splice(i, 1);
       }
     }
 
 }
+function isBloodStained(x, y) {
+  return bloodStainedSquares.some(function(square) {
+    return square.x === x && square.y === y;
+  });
+}
+function addBloodStain(x, y) {
+  if (!isBloodStained(x, y)) {
+    bloodStainedSquares.push({ x: x, y: y });
+    if(bloodStainedSquares.length>10000)bloodStainedSquares.splice(0, 1);
+  }
+}
+// Function to draw the bloody squares
+function drawBloodySquares() {
+  const squareSize = 1;
+  for (var i = 0; i < bloodStainedSquares.length; i++) {
+      var square = bloodStainedSquares[i];
+      ctx.fillStyle = "red";
+      ctx.fillRect(square.x - squareSize / 2, square.y - squareSize / 2, squareSize, squareSize);
+  }
+}
+
 function getSunPosition() {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
@@ -396,9 +418,36 @@ function getSunPosition() {
   
     return { x: sunX, y: sunY };
   }
-
-function draw() {
+  let frameCount = 0;
+  let lastFpsUpdate = performance.now();
+  let fps = 0;
+function draw() {  
     ctx.clearRect(0, 0, canvas.width, canvas.height);  
+        // Draw bloodParticles.length
+    ctx.fillStyle = "black";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("Blood Particles: " + bloodParticles.length, 10, 110);
+
+    // Draw bloodStainedSquares.length
+    ctx.fillStyle = "black";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("Blood Stained Squares: " + bloodStainedSquares.length, 10, 130);
+
+        // Calculate FPS
+        frameCount++;
+        const now = performance.now();
+        const elapsedTime = now - lastFpsUpdate;
+    
+        if (elapsedTime >= 1000) { // Update FPS every 1000 ms (1 second)
+            fps = (frameCount / elapsedTime) * 1000;
+            frameCount = 0;
+            lastFpsUpdate = now;
+        }
+    
+        // Draw FPS meter
+        ctx.fillStyle = "black";
+        ctx.font = "bold 16px Arial";
+        ctx.fillText("FPS: " + Math.round(fps), canvas.width / 2 - 30, 25);
     const sunPosition = getSunPosition();
     drawSun(sunPosition.x, sunPosition.y);    
     clouds.forEach((cloud) => cloud.draw());
@@ -416,6 +465,7 @@ function draw() {
     // Fill all squares below y=600 with black color
     ctx.fillStyle = "black";
     ctx.fillRect(0, 650, canvas.width, canvas.height - 600);
+    drawBloodySquares()
     // Draw the player/monster
     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
     if(enemy.hp>0)ctx.drawImage(monsterImage, enemy.x, enemy.y, enemy.width, enemy.height);
