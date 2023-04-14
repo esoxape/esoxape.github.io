@@ -14,6 +14,40 @@ function loadChunkImages() {
         chunkImages.push(img);
     }
 }
+class Airplane {
+  constructor() {
+    this.image = new Image();
+    this.image.src = 'airplane.jpg';
+    this.width = 150; 
+    this.height = 75; 
+    this.x = canvas.width;
+    this.y = 200;
+    this.speed = 1; // 
+    this.hitpoints = 100; 
+    this.nextSpawnTime = Date.now() + Math.random() * (120 - 60) * 1000;
+  }
+
+  draw() {
+    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+  }
+
+  update() {
+    this.x -= this.speed;
+  }
+
+  isReadyToSpawn() {
+    return Date.now() >= this.nextSpawnTime;
+  }
+
+  spawn() {
+    this.x = canvas.width;
+    this.y = 200;
+    this.nextSpawnTime = Date.now() + Math.random() * (120 - 60) * 1000;
+  }
+}
+
+
+const airplane = new Airplane();
 class Cloud {
     constructor(x, y) {
       this.x = x;
@@ -98,7 +132,7 @@ const player = {
     height: 50,
     speed: 300, // pixels per second
     jumping: false,
-    jumpHeight: 450,
+    jumpHeight: 250,
     gravity: 1000, // pixels per second squared
     grounded: true,
     hp:100,
@@ -197,11 +231,15 @@ let timeO = Date.now();
 let mouseX = 300;
 let mouseY = 300;
 
-// Listen for mouse movement and update mouseX and mouseY
-document.addEventListener('mousemove', (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
+canvas.addEventListener("mousemove", (event) => {
+  updateMousePosition(event);
 });
+function updateMousePosition(event) {
+  const canvasRect = canvas.getBoundingClientRect();
+  mouseX = event.clientX - canvasRect.left;
+  mouseY = event.clientY - canvasRect.top;
+}
+
 function shoot() {
     const now = Date.now();
     if (now - timeO < 25) {
@@ -237,13 +275,6 @@ function shoot() {
     player.isFiring=now;
     timeO = now;
 }
-
-function update(timestamp) {
-    const dt = (timestamp - lastTimestamp) / 1000; // time difference in seconds
-    lastTimestamp = timestamp;
-
-}
-
 function gameLoop(timestamp) {
     update(timestamp);
     draw();
@@ -360,11 +391,12 @@ function update(timestamp) {
         chunks[i].rotation += chunks[i].rotationSpeed * dt; // Update chunk rotation
         chunks[i].ySpeed += 500 * dt; // Apply gravity to chunks' ySpeed
         bloodCounterChunks++;
-        if(bloodCounterChunks==50)
+        if(bloodCounterChunks==49)
         {
         bloodAndGore(chunks[i].x, chunks[i].y, 2);
         bloodCounterChunks=0;
         }
+        if (chunks[i].x>canvas.width+30 || chunks[i].x<-30)chunks.splice(i, 1);
     }
 
 
@@ -400,13 +432,29 @@ function update(timestamp) {
           bloodParticles.splice(i, 1);
       }
     }
+    if (airplane.isReadyToSpawn()) {
+      airplane.spawn();
+    } else {
+      airplane.update();
+      if (airplane.x + airplane.width < 0) {
+        airplane.nextSpawnTime = Date.now() + Math.random() * (120 - 60) * 1000;
+      }
+    }
 
 }
 function isBloodStained(x, y) {
-  return bloodStainedSquares.some(function(square) {
-    return square.x === x && square.y === y;
-  });
+  const tolerance = 1;
+
+  for (let i = 0; i < bloodStainedSquares.length; i++) {
+    const square = bloodStainedSquares[i];
+    if (Math.abs(square.x - x) <= tolerance && Math.abs(square.y - y) <= tolerance) {
+      return true;
+    }
+  }
+  return false;
 }
+
+
 function addBloodStain(x, y) {
   if (!isBloodStained(x, y)) {
     bloodStainedSquares.push({ x: x, y: y });
@@ -450,15 +498,15 @@ function getSunPosition() {
         const flameColors = ["red", "orange", "yellow"];
 
         for (let i = 0; i < flameCount; i++) {
-            const randomHeight = Math.random() * 15; // Random value between 0 and 5
-            const randomOffsetX = Math.random() * 8 * (whichWay === 0 ? 1 : -1);
+            const randomHeight = Math.random() * 25 - 12.5; // Random value between -12.5 and 12.5
+            const randomOffsetX = Math.random() * 18 * (whichWay === 0 ? 1 : -1);
             const flameColor = flameColors[i];
 
             ctx.fillStyle = flameColor;
             ctx.beginPath();
-            ctx.moveTo(player.x + xOffset, player.y + player.height / 2 - flameHeight / 2);
-            ctx.lineTo(player.x + xOffset + (whichWay === 0 ? flameWidth : -flameWidth) + randomOffsetX, player.y + player.height / 2 - flameHeight / 2 + randomHeight);
-            ctx.lineTo(player.x + xOffset, player.y + player.height / 2 + flameHeight / 2);
+            ctx.moveTo(player.x + xOffset, player.y + (player.height / 2)+5 - flameHeight / 2);
+            ctx.lineTo(player.x + xOffset + (whichWay === 0 ? flameWidth : -flameWidth) + randomOffsetX, player.y + (player.height / 2)+5 - flameHeight / 2 + randomHeight);
+            ctx.lineTo(player.x + xOffset, player.y + (player.height / 2)+5 + flameHeight / 2);
             ctx.closePath();
             ctx.fill();
         }
@@ -468,17 +516,10 @@ function getSunPosition() {
 
 
 
+
 function draw() {  
     ctx.clearRect(0, 0, canvas.width, canvas.height);  
-        // Draw bloodParticles.length
-    ctx.fillStyle = "black";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("Blood Particles: " + bloodParticles.length, 10, 110);
 
-    // Draw bloodStainedSquares.length
-    ctx.fillStyle = "black";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("Blood Stained Squares: " + bloodStainedSquares.length, 10, 130);
 
         // Calculate FPS
         frameCount++;
@@ -491,10 +532,10 @@ function draw() {
             lastFpsUpdate = now;
         }
     
-        // Draw FPS meter
-        ctx.fillStyle = "black";
-        ctx.font = "bold 16px Arial";
-        ctx.fillText("FPS: " + Math.round(fps), canvas.width / 2 - 30, 25);
+    // Draw FPS meter
+    ctx.fillStyle = "black";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("FPS: " + Math.round(fps), canvas.width / 2 - 30, 25);
     const sunPosition = getSunPosition();
     drawSun(sunPosition.x, sunPosition.y);    
     clouds.forEach((cloud) => cloud.draw());
@@ -513,23 +554,26 @@ function draw() {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 650, canvas.width, canvas.height - 600);
     drawBloodySquares()
-    // Draw the player/monster
+    // Draw the player
     ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-    if(enemy.hp>0)ctx.drawImage(monsterImage, enemy.x, enemy.y, enemy.width, enemy.height);
-    // Draw HP bar
+    // Draw player HP bar
     ctx.fillStyle = "red";
-    ctx.fillRect(10, 10, player.hp, 20);
-    // Draw HP text
+    ctx.fillRect(player.x, player.y - 30, (player.hp / 100) * player.width, 10);
+    // Draw player HP text
     ctx.fillStyle = "black";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("HP: " + player.hp, 10, 25);
-    // Draw monster HP bar
-    ctx.fillStyle = "red";
-    ctx.fillRect(canvas.width - (enemy.hp / 1000 * 100) - 10, 10, enemy.hp / 1000 * 100, 20);
-    // Draw monster HP text
-    ctx.fillStyle = "black";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("M HP: " + enemy.hp, canvas.width - 110, 25);
+    ctx.font = "bold 12px Arial";
+    ctx.fillText("HP: " + player.hp, player.x, player.y - 35);
+    if(enemy.hp>0)
+    {
+      ctx.drawImage(monsterImage, enemy.x, enemy.y, enemy.width, enemy.height);
+      // Draw monster HP bar
+      ctx.fillStyle = "red";
+      ctx.fillRect(enemy.x, enemy.y - 30, (enemy.hp / 1000) * enemy.width, 10);
+      // Draw monster HP text
+      ctx.fillStyle = "black";
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("HP: " + enemy.hp, enemy.x, enemy.y - 35);
+    }
     // Draw bullets
     ctx.fillStyle = "black";
     for (const bullet of player.bullets) { 
@@ -561,6 +605,9 @@ function draw() {
         }
     }
     drawMuzzleFlame();
+    if (!airplane.isReadyToSpawn()) {
+      airplane.draw();
+    }
     ctx.globalAlpha = 1;
 }
 async function getWeatherData(latitude, longitude) {

@@ -14,9 +14,12 @@
     <p>Best game ever</p>
     <button id="blasterMasterBtn">Blastermaster</button>
     <button id="solstralningBtn">Solstrålning</button>
+    <button id="calculatorBtn">Calculator</button>
     <canvas id="gameCanvas" width="1200" height="800" style="display:none;"></canvas>
     <p>A to move left D to move right W to jump, space to shoot and aim with the mouse</p>
-    <script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>    
         function loadScript(src) {
             var existingScript = document.getElementById('dynamicScript');
             if (existingScript) {
@@ -36,6 +39,10 @@
         document.getElementById('solstralningBtn').addEventListener('click', function() {
             document.getElementById('gameCanvas').style.display = 'block';
             loadScript('sun.js');
+        });
+
+        document.getElementById('calculatorBtn').addEventListener('click', function() {
+            window.open('calc.htm', '_blank');
         });
     </script>
 </body>
