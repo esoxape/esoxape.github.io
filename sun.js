@@ -14,16 +14,16 @@ const drawGraph = (daysData) => {
   const ctx = document.getElementById('gameCanvas').getContext('2d');
 
   new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: daysData.map((data) => data.day),
       datasets: [
         {
-          label: 'ParameterID Total',
+          label: 'Global Irradians',
           data: daysData.map((data) => data.value),
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
           borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 2,
-          tension: 0.1,
+          borderWidth: 1,
         },
       ],
     },
@@ -38,7 +38,7 @@ const drawGraph = (daysData) => {
         y: {
           title: {
             display: true,
-            text: 'ParameterID Total',
+            text: 'Global Irradians',
           },
         },
       },
@@ -71,7 +71,7 @@ const fetchSMHIData = async () => {
     });
 
     const daysData = processSMHIData({ value: filteredData });
-    drawGraph(daysData);
+    drawGraph(3);
   } catch (error) {
     console.error('Error fetching data:', error);
   }

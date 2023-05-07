@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -37,8 +36,8 @@
         });
 
         document.getElementById('solstralningBtn').addEventListener('click', function() {
-            document.getElementById('gameCanvas').style.display = 'block';
-            loadScript('sun.js');
+            // Updated event listener to open sol.htm
+            window.open('sol.htm', '_blank');
         });
 
         document.getElementById('calculatorBtn').addEventListener('click', function() {
