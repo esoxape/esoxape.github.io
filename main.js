@@ -58,7 +58,10 @@ let chartInstance = null;
 
 const drawBarGraph = (data) => {
   const ctx = document.getElementById("barGraph").getContext("2d");
-  const labels = Object.keys(data);
+  const labels = Object.keys(data).map((dateString) => {
+    const date = new Date(dateString);
+    return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
   const values = Object.values(data);
 
   if (chartInstance) {
@@ -73,8 +76,8 @@ const drawBarGraph = (data) => {
         {
           label: "Total value per day",
           data: values,
-          backgroundColor: "rgba(75, 192, 192, 0.2)",
-          borderColor: "rgba(75, 192, 192, 1)",
+          backgroundColor: "rgba(33, 33, 33, 0.2)",
+          borderColor: "rgba(0, 0, 0, 1)",
           borderWidth: 1,
         },
       ],
@@ -85,11 +88,25 @@ const drawBarGraph = (data) => {
       scales: {
         y: {
           beginAtZero: true,
+          ticks: {
+            font: {
+              size: 24, // Set the font size for y-axis labels
+            },
+          },
+        },
+        x: {
+          ticks: {
+            font: {
+              size: 24, // Set the font size for x-axis labels
+            },
+          },
         },
       },
     },
   });
 };
+
+
 
 
 
