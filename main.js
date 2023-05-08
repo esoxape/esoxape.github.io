@@ -102,9 +102,21 @@ const drawBarGraph = (data) => {
           },
         },
       },
+      plugins: {
+        tooltip: {
+          displayColors: false,
+          bodyFont: {
+            size: 30, // Set the font size for tooltip body text
+          },
+          titleFont: {
+            size: 30, // Set the font size for tooltip title text
+          },
+        },
+      },
     },
   });
 };
+
 
 
 
