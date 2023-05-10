@@ -46,7 +46,6 @@ const processData = (data) => {
     dailyData[dateString] += parseFloat(item.value);
   });
 
-  // Filter out dates with no data
   const filteredData = Object.fromEntries(
     Object.entries(dailyData).filter(([_, value]) => value > 0)
   );
@@ -65,7 +64,6 @@ const drawBarGraph = (data) => {
     return;
   }
 
-  // Remove the first day from the data
   dateStrings.shift();
 
   const labels = dateStrings.map((dateString) => {
@@ -74,8 +72,6 @@ const drawBarGraph = (data) => {
   });
 
   const values = Object.values(data);
-
-  // Remove the first day value
   values.shift();
 
   if (chartInstance) {
@@ -88,7 +84,7 @@ const drawBarGraph = (data) => {
       labels: labels,
       datasets: [
         {
-          label: "Total value per day",
+          label: "Total W/m2 per day",
           data: values,
           backgroundColor: "rgba(33, 33, 33, 0.2)",
           borderColor: "rgba(0, 0, 0, 1)",
