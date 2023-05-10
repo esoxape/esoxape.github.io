@@ -12,6 +12,7 @@ const fetchSMHIData = async (timeRange) => {
     const response = await fetch(requestUrl);
     const data = await response.json();
     const now = new Date();
+	const firstDayTimestamp = data.value[0] ? new Date(data.value[0].date).getTime() : null;
     const filteredData = data.value.filter((item) => {
       const itemDate = new Date(item.date);
       const timeDifference = now - itemDate;
@@ -58,11 +59,24 @@ let chartInstance = null;
 
 const drawBarGraph = (data) => {
   const ctx = document.getElementById("barGraph").getContext("2d");
-  const labels = Object.keys(data).map((dateString) => {
+
+  const dateStrings = Object.keys(data);
+  if (dateStrings.length === 0) {
+    return;
+  }
+
+  // Remove the first day from the data
+  dateStrings.shift();
+
+  const labels = dateStrings.map((dateString) => {
     const date = new Date(dateString);
     return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   });
+
   const values = Object.values(data);
+
+  // Remove the first day value
+  values.shift();
 
   if (chartInstance) {
     chartInstance.destroy();
