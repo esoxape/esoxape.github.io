@@ -1,12 +1,11 @@
-const fetchSMHIData = async (timeRange) => {
+const fetchSMHIData = async (stationId, timeRange) => {
   const apiUrl = "https://opendata-download-metobs.smhi.se/api/";
   const version = "version/1.0/";
   const parameterId = "parameter/11";
-  const stationId = "station/86655";
   const period = "latest-months";
   const format = ".json";
 
-  const requestUrl = `${apiUrl}${version}${parameterId}/${stationId}/period/${period}/data${format}`;
+  const requestUrl = `${apiUrl}${version}${parameterId}/station/${stationId}/period/${period}/data${format}`;
 
   try {
     const response = await fetch(requestUrl);
@@ -56,23 +55,23 @@ const processData = (data) => {
 
 let chartInstance = null;
 
-const drawBarGraph = (data) => {
+const drawBarGraph = (data1, data2) => {
   const ctx = document.getElementById("barGraph").getContext("2d");
 
-  const dateStrings = Object.keys(data);
-  if (dateStrings.length === 0) {
-    return;
-  }
+  const labels1 = Object.keys(data1);
+  const labels2 = Object.keys(data2);
 
-  dateStrings.shift();
+  // Create a set of unique labels
+  const labels = Array.from(new Set(labels1.concat(labels2)));
 
-  const labels = dateStrings.map((dateString) => {
-    const date = new Date(dateString);
-    return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  });
+  // Map the labels to the corresponding values from each dataset
+  const values1 = labels.map(label => data1[label] || 0);
+  const values2 = labels.map(label => data2[label] || 0);
 
-  const values = Object.values(data);
-  values.shift();
+  // Remove the first day of data
+  labels.shift();
+  values1.shift();
+  values2.shift();
 
   if (chartInstance) {
     chartInstance.destroy();
@@ -84,10 +83,17 @@ const drawBarGraph = (data) => {
       labels: labels,
       datasets: [
         {
-          label: "Total W/m2 per day",
-          data: values,
+          label: "Selected station",
+          data: values1,
           backgroundColor: "rgba(33, 33, 33, 0.2)",
           borderColor: "rgba(0, 0, 0, 1)",
+          borderWidth: 1,
+        },
+        {
+          label: "Norrköping",
+          data: values2,
+          backgroundColor: "rgba(0, 0, 255, 0.2)",
+          borderColor: "rgba(0, 0, 255, 1)",
           borderWidth: 1,
         },
       ],
@@ -132,19 +138,30 @@ const drawBarGraph = (data) => {
 
 
 
+
+let selectedStationId = "105285";  // Default station ID
+
+const stationSelect = document.getElementById("stationSelect");
+stationSelect.addEventListener("change", (event) => {
+  selectedStationId = event.target.value;
+  init();
+});
+
 const init = async (timeRange = "month") => {
   try {
-    const rawData = await fetchSMHIData(timeRange);
-    console.log('Raw data:', rawData);
+    const rawData1 = await fetchSMHIData(selectedStationId, timeRange);
+    const rawData2 = await fetchSMHIData("86655", timeRange);  // Change this to another station ID if needed
 
-    const dailyData = processData(rawData);
-    console.log('Daily data:', dailyData);
+    const dailyData1 = processData(rawData1);
+    const dailyData2 = processData(rawData2);
 
-    drawBarGraph(dailyData);
+    drawBarGraph(dailyData1, dailyData2);
   } catch (error) {
     console.error("Error in init function:", error);
   }
 };
+
+
 
 init();
 
