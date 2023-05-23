@@ -55,7 +55,7 @@ const processData = (data) => {
 
 let chartInstance = null;
 
-const drawBarGraph = (data1, data2) => {
+const drawBarGraph = (data1, data2, stationName) => {
   const ctx = document.getElementById("barGraph").getContext("2d");
 
   const labels1 = Object.keys(data1);
@@ -83,7 +83,7 @@ const drawBarGraph = (data1, data2) => {
       labels: labels,
       datasets: [
         {
-          label: "Selected station",
+          label: stationName,
           data: values1,
           backgroundColor: "rgba(33, 33, 33, 0.2)",
           borderColor: "rgba(0, 0, 0, 1)",
@@ -151,11 +151,11 @@ const init = async (timeRange = "month") => {
   try {
     const rawData1 = await fetchSMHIData(selectedStationId, timeRange);
     const rawData2 = await fetchSMHIData("86655", timeRange);  // Change this to another station ID if needed
-
+	const selectedStationName = stationSelect.options[stationSelect.selectedIndex].text;
     const dailyData1 = processData(rawData1);
     const dailyData2 = processData(rawData2);
 
-    drawBarGraph(dailyData1, dailyData2);
+    drawBarGraph(dailyData1, dailyData2, selectedStationName);
   } catch (error) {
     console.error("Error in init function:", error);
   }
