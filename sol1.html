@@ -366,12 +366,15 @@
         }
 
         function updateStats(records) {
-            const totalRecords = records.length;
-            const validRecords = records.filter(r => r.irradiance > 0);
+            // Filter out 2025 data for statistics as it's incomplete
+            const completeRecords = records.filter(r => r.year < 2025);
+            
+            const totalRecords = completeRecords.length;
+            const validRecords = completeRecords.filter(r => r.irradiance > 0);
             const avgIrradiance = validRecords.length > 0 ? 
                 validRecords.reduce((sum, r) => sum + r.irradiance, 0) / validRecords.length : 0;
-            const maxIrradiance = records.length > 0 ? Math.max(...records.map(r => r.irradiance)) : 0;
-            const years = new Set(records.map(r => r.year));
+            const maxIrradiance = completeRecords.length > 0 ? Math.max(...completeRecords.map(r => r.irradiance)) : 0;
+            const years = new Set(completeRecords.map(r => r.year));
             const minYear = Math.min(...years);
             const maxYear = Math.max(...years);
             
@@ -385,7 +388,10 @@
         function createYearlyChart(records) {
             const yearlyTotals = {};
             
-            records.forEach(record => {
+            // Filter out 2025 data as it's incomplete
+            const filteredRecords = records.filter(record => record.year < 2025);
+            
+            filteredRecords.forEach(record => {
                 if (!yearlyTotals[record.year]) {
                     yearlyTotals[record.year] = 0;
                 }
@@ -447,12 +453,15 @@
         }
 
         function createMonthlyChart(records) {
+            // Filter out 2025 data as it's incomplete
+            const filteredRecords = records.filter(record => record.year < 2025);
+            
             const monthlyTotals = new Array(12).fill(0);
             const monthlyCounts = new Array(12).fill(0);
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             
-            records.forEach(record => {
+            filteredRecords.forEach(record => {
                 monthlyTotals[record.month] += record.irradiance;
                 monthlyCounts[record.month]++;
             });
@@ -504,11 +513,14 @@
         }
 
         function createHourlyChart(records) {
+            // Filter out 2025 data as it's incomplete
+            const filteredRecords = records.filter(record => record.year < 2025);
+            
             const hourlyTotals = new Array(24).fill(0);
             const hourlyCounts = new Array(24).fill(0);
             const hours = Array.from({length: 24}, (_, i) => i + ':00');
             
-            records.forEach(record => {
+            filteredRecords.forEach(record => {
                 hourlyTotals[record.hour] += record.irradiance;
                 hourlyCounts[record.hour]++;
             });
