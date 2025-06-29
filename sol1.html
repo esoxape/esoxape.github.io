@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Norrköping Solar Irradiance Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .station-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .info-card .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-card .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .chart-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>☀️ Norrköping Solar Irradiance Analysis</h1>
+            <div class="station-info">
+                <div class="info-card">
+                    <div class="label">Station</div>
+                    <div class="value">Norrköping Sol</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Station Number</div>
+                    <div class="value">86655</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Coordinates</div>
+                    <div class="value">58.58°N, 16.15°E</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Elevation</div>
+                    <div class="value">53m above sea level</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Data Period</div>
+                    <div class="value" id="dataPeriod">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Measurement Height</div>
+                    <div class="value">2.0m above ground</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading CSV data from smhidata.csv...</div>
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;">
+            <h3>Error Loading Data</h3>
+            <p>Could not load smhidata.csv. Please ensure the file exists in the same directory.</p>
+        </div>
+        
+        <div id="mainContent" style="display: none;">
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRecords">-</div>
+                    <div class="stat-label">Total Records</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgIrradiance">-</div>
+                    <div class="stat-label">Avg Irradiance (W/m²)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="maxIrradiance">-</div>
+                    <div class="stat-label">Max Irradiance (W/m²)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dataYears">-</div>
+                    <div class="stat-label">Years of Data</div>
+                </div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="chart-container full-width">
+                    <div class="chart-title">Annual Solar Irradiance Totals</div>
+                    <canvas id="yearlyChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="chart-container">
+                    <div class="chart-title">Monthly Averages</div>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Hourly Distribution</div>
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = [];
+        let charts = {};
+
+        function showLoading() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+        }
+
+        function showError() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+        }
+
+        function showContent() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        function loadCSV() {
+            showLoading();
+            
+            Papa.parse('./smhidata.csv', {
+                download: true,
+                delimiter: ';',
+                skipEmptyLines: true,
+                complete: function(results) {
+                    try {
+                        const data = parseCSVData(results.data);
+                        if (data.length > 0) {
+                            globalData = data;
+                            updateDashboard(data);
+                            showContent();
+                        } else {
+                            showError();
+                        }
+                    } catch (error) {
+                        console.error('Error parsing CSV:', error);
+                        showError();
+                    }
+                },
+                error: function(error) {
+                    console.error('Error loading CSV:', error);
+                    showError();
+                }
+            });
+        }
+
+        function parseCSVData(rawData) {
+            const records = [];
+            let dataStarted = false;
+            
+            for (let i = 0; i < rawData.length; i++) {
+                const row = rawData[i];
+                
+                // Skip header rows until we find data rows
+                if (row.length >= 3 && row[0].includes('-') && row[1].includes(':')) {
+                    dataStarted = true;
+                }
+                
+                if (dataStarted && row.length >= 3) {
+                    try {
+                        const dateStr = row[0].trim();
+                        const timeStr = row[1].trim();
+                        const irradianceStr = row[2].trim();
+                        
+                        // Skip if irradiance is empty or not a number
+                        if (!irradianceStr || irradianceStr === '') continue;
+                        
+                        const irradiance = parseFloat(irradianceStr);
+                        if (isNaN(irradiance)) continue;
+                        
+                        const date = new Date(dateStr + 'T' + timeStr);
+                        if (isNaN(date.getTime())) continue;
+                        
+                        records.push({
+                            date,
+                            year: date.getFullYear(),
+                            month: date.getMonth(),
+                            hour: date.getHours(),
+                            irradiance
+                        });
+                    } catch (error) {
+                        // Skip invalid rows
+                        continue;
+                    }
+                }
+            }
+            
+            return records;
+        }
+
+        function updateDashboard(records) {
+            updateStats(records);
+            createYearlyChart(records);
+            createMonthlyChart(records);
+            createHourlyChart(records);
+        }
+
+        function updateStats(records) {
+            const totalRecords = records.length;
+            const validRecords = records.filter(r => r.irradiance > 0);
+            const avgIrradiance = validRecords.length > 0 ? 
+                validRecords.reduce((sum, r) => sum + r.irradiance, 0) / validRecords.length : 0;
+            const maxIrradiance = records.length > 0 ? Math.max(...records.map(r => r.irradiance)) : 0;
+            const years = new Set(records.map(r => r.year));
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
+            
+            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
+            document.getElementById('avgIrradiance').textContent = avgIrradiance.toFixed(1);
+            document.getElementById('maxIrradiance').textContent = maxIrradiance.toFixed(1);
+            document.getElementById('dataYears').textContent = years.size;
+            document.getElementById('dataPeriod').textContent = `${minYear} - ${maxYear}`;
+        }
+
+        function createYearlyChart(records) {
+            const yearlyTotals = {};
+            
+            records.forEach(record => {
+                if (!yearlyTotals[record.year]) {
+                    yearlyTotals[record.year] = 0;
+                }
+                yearlyTotals[record.year] += record.irradiance;
+            });
+            
+            const years = Object.keys(yearlyTotals).sort();
+            const totals = years.map(year => yearlyTotals[year] / 1000); // Convert to kWh/m²
+            
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            
+            if (charts.yearly) charts.yearly.destroy();
+            
+            charts.yearly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Annual Solar Irradiance (kWh/m²)',
+                        data: totals,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Solar Irradiance (kWh/m²)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createMonthlyChart(records) {
+            const monthlyTotals = new Array(12).fill(0);
+            const monthlyCounts = new Array(12).fill(0);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            records.forEach(record => {
+                monthlyTotals[record.month] += record.irradiance;
+                monthlyCounts[record.month]++;
+            });
+            
+            const monthlyAverages = monthlyTotals.map((total, i) => 
+                monthlyCounts[i] > 0 ? total / monthlyCounts[i] : 0
+            );
+            
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            
+            if (charts.monthly) charts.monthly.destroy();
+            
+            charts.monthly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Average Irradiance (W/m²)',
+                        data: monthlyAverages,
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: '#764ba2',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Irradiance (W/m²)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createHourlyChart(records) {
+            const hourlyTotals = new Array(24).fill(0);
+            const hourlyCounts = new Array(24).fill(0);
+            const hours = Array.from({length: 24}, (_, i) => i + ':00');
+            
+            records.forEach(record => {
+                hourlyTotals[record.hour] += record.irradiance;
+                hourlyCounts[record.hour]++;
+            });
+            
+            const hourlyAverages = hourlyTotals.map((total, i) => 
+                hourlyCounts[i] > 0 ? total / hourlyCounts[i] : 0
+            );
+            
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            
+            if (charts.hourly) charts.hourly.destroy();
+            
+            charts.hourly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Average Hourly Irradiance (W/m²)',
+                        data: hourlyAverages,
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hour of Day'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Irradiance (W/m²)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCSV();
+        });
+    </script>
+</body>
+</html>
