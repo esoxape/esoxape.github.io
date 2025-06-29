@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Irradiance W/m²</title>
+  <!-- Include the Chart.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- CSS styles for the page -->
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 80vh !important;
+      margin-top: 20px;
+    }
+
+    div {
+      margin-bottom: 15px;
+    }
+
+    button,
+    select {
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Global Irradiance W/m²</h1>
+  <div>
+    <label for="stationSelect">Select a station:</label>
+    <select id="stationSelect">
+      <option value="105285">Borlänge</option>
+      <option value="71415">Göteborg</option>
+      <option value="68545">Hoburg</option>
+      <option value="93235">Karlstad</option>
+      <option value="180025">Kiruna</option>
+      <option value="162015">Luleå</option>
+      <option value="53445">Lund</option>
+      <option value="81525">Nordkoster</option>
+      <option value="98735">Stockholm</option>
+      <option value="132165">Storlien-Visjövalen</option>
+      <option value="99275">Svenska Högarna</option>
+      <option value="178985">Tarfala</option>
+      <option value="140615">Umeå</option>
+      <option value="78645">Visby</option>
+      <option value="64565">Växjö</option>
+      <option value="134615">Östersund</option>
+    </select>
+  </div>
+  <canvas id="barGraph"></canvas>
+  <div class="button-group">
+    <button id="pastWeek">Past Week</button>
+    <button id="pastMonth">Past Month</button>
+    <button id="pastQuarter">Past Quarter</button>
+    <button id="allAvailable">Summa per månad</button>
+  </div>
+  <div id="statusMessage"></div>
+
+  <!-- JavaScript logic for fetching data and drawing the chart -->
+  <script>
+    let chartInstance = null;
+    let selectedStationId = "105285"; // Default station ID is Borlänge
+
+    const setStatus = (message, isError = false) => {
+      const statusDiv = document.getElementById("statusMessage");
+      statusDiv.textContent = message;
+      statusDiv.className = isError ? "error" : "loading";
+      if (!message) statusDiv.className = "";
+    };
+
+    const fetchSMHIData = async (stationId, timeRange) => {
+      const apiUrl = "https://opendata-download-metobs.smhi.se/api/";
+      const version = "version/1.0/";
+      const parameterId = "parameter/11"; // Parameter for Global irradiance
+      const period = "latest-months"; // Use latest-months for all requests (JSON format)
+      const format = ".json";
+
+      const requestUrl = `${apiUrl}${version}${parameterId}/station/${stationId}/period/${period}/data${format}`;
+
+      try {
+        const response = await fetch(requestUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const jsonData = await response.json();
+        const data = jsonData.value;
+        const now = new Date();
+        
+        // Filter data based on the selected time range
+        const filteredData = data.filter((item) => {
+          const itemDate = new Date(item.date);
+          const timeDifference = now - itemDate;
+          switch (timeRange) {
+            case "week":
+              return timeDifference < 7 * 24 * 60 * 60 * 1000;
+            case "month":
+              return timeDifference < 30 * 24 * 60 * 60 * 1000;
+            case "quarter":
+              return timeDifference < 90 * 24 * 60 * 60 * 1000;
+            case "all":
+              // Use all available data from latest-months (typically 4-5 months)
+              return true;
+            default:
+              return true;
+          }
+        });
+        return filteredData;
+      } catch (error) {
+        console.error("Error fetching data for station " + stationId + ":", error);
+        throw error;
+      }
+    };
+
+
+
+    const processData = (data, timeRange) => {
+      const processedData = {};
+
+      data.forEach((item) => {
+        const date = new Date(item.date);
+        let dateString;
+        
+        // For the "all available" mode, use monthly aggregation if we have more than 60 days of data
+        if (timeRange === "all") {
+          const dataSpan = data.length > 0 ? 
+            (new Date(Math.max(...data.map(d => new Date(d.date)))) - 
+             new Date(Math.min(...data.map(d => new Date(d.date))))) / (1000 * 60 * 60 * 24) : 0;
+          
+          if (dataSpan > 60) {
+            dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          } else {
+            dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          }
+        } else {
+          dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        if (!processedData[dateString]) {
+          processedData[dateString] = 0;
+        }
+        
+        const value = parseFloat(item.value);
+        if (!isNaN(value)) {
+          processedData[dateString] += value;
+        }
+      });
+
+      // Filter out periods with no recorded radiation (value > 0)
+      const filteredData = Object.fromEntries(
+        Object.entries(processedData).filter(([_, value]) => value > 0)
+      );
+
+      return filteredData;
+    };
+
+    const drawBarGraph = (data1, data2, stationName1, stationName2, timeRange) => {
+      const ctx = document.getElementById("barGraph").getContext("2d");
+
+      const labels1 = Object.keys(data1);
+      const labels2 = Object.keys(data2);
+
+      // Create a sorted, unique set of date labels from both datasets
+      const labels = Array.from(new Set(labels1.concat(labels2))).sort();
+
+      // Map the labels to the corresponding values for each dataset, defaulting to 0 if no data
+      const values1 = labels.map(label => data1[label] || 0);
+      const values2 = labels.map(label => data2[label] || 0);
+      
+      // Remove incomplete data points for cleaner visualization
+      if (labels.length > 1) {
+          labels.shift();
+          values1.shift();
+          values2.shift();
+      }
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      const yAxisLabel = (timeRange === "all" && labels.length > 30) 
+        ? 'Monthly Sum of Hourly Mean Irradiance (W/m²)'
+        : 'Daily Sum of Hourly Mean Irradiance (W/m²)';
+
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: stationName1,
+            data: values1,
+            backgroundColor: "rgba(255, 99, 132, 0.5)", // Reddish
+            borderColor: "rgba(255, 99, 132, 1)",
+            borderWidth: 1,
+          }, {
+            label: stationName2,
+            data: values2,
+            backgroundColor: "rgba(54, 162, 235, 0.5)", // Bluish
+            borderColor: "rgba(54, 162, 235, 1)",
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: yAxisLabel,
+                font: { size: 16 }
+              },
+              ticks: {
+                font: { size: 14 },
+              },
+            },
+            x: {
+              ticks: {
+                font: { size: 14 },
+                maxRotation: 45,
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              displayColors: true,
+              bodyFont: { size: 16, },
+              titleFont: { size: 16, },
+            },
+            legend: {
+              labels: {
+                 font: { size: 18 }
+              }
+            }
+          },
+        },
+      });
+    };
+
+    const init = async (timeRange = "month") => {
+      try {
+        setStatus("Loading data...");
+        
+        // Find the select element to get the chosen station's name
+        const stationSelect = document.getElementById("stationSelect");
+        const selectedStationName = stationSelect.options[stationSelect.selectedIndex].text;
+        
+        // Fetch data for the selected station and the comparison station (Norrköping)
+        const rawData1 = await fetchSMHIData(selectedStationId, timeRange);
+        const rawData2 = await fetchSMHIData("86655", timeRange); // Norrköping ID
+
+        // Process the raw data into daily/monthly sums
+        const processedData1 = processData(rawData1, timeRange);
+        const processedData2 = processData(rawData2, timeRange);
+
+        // Draw the graph with the processed data
+        drawBarGraph(processedData1, processedData2, selectedStationName, "Norrköping", timeRange);
+        
+        setStatus("");
+      } catch (error) {
+        console.error("Error in init function:", error);
+        setStatus("Error loading data. Please try again.", true);
+      }
+    };
+
+    // --- EVENT LISTENERS ---
+    
+    // Add an event listener for the station dropdown
+    const stationSelect = document.getElementById("stationSelect");
+    stationSelect.addEventListener("change", (event) => {
+      selectedStationId = event.target.value;
+      init(); // Re-initialize with the default time range ('month')
+    });
+
+    // Add event listeners for the time range buttons
+    document.getElementById("pastWeek").addEventListener("click", () => {
+      init("week");
+    });
+
+    document.getElementById("pastMonth").addEventListener("click", () => {
+      init("month");
+    });
+
+    document.getElementById("pastQuarter").addEventListener("click", () => {
+      init("quarter");
+    });
+
+    document.getElementById("allAvailable").addEventListener("click", () => {
+      init("all");
+    });
+
+    // Initial load of the chart when the page is first opened
+    init();
+  </script>
+</body>
+
+</html>
