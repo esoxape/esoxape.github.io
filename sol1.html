@@ -218,9 +218,11 @@
             <div>Loading CSV data from smhidata.csv...</div>
         </div>
         
-        <div id="errorMessage" class="error" style="display: none;">
-            <h3>Error Loading Data</h3>
-            <p>Could not load smhidata.csv. Please ensure the file exists in the same directory.</p>
+        <div id="fallbackUpload" class="loading" style="display: none;">
+            <h3>Upload CSV File</h3>
+            <p>Automatic loading failed. Please select your smhidata.csv file:</p>
+            <input type="file" id="csvFileInput" accept=".csv" style="margin: 15px 0; padding: 10px; border-radius: 5px; border: 2px solid white; background: rgba(255,255,255,0.2); color: white;">
+            <button onclick="handleFileUpload()" style="padding: 10px 20px; border-radius: 5px; border: none; background: #667eea; color: white; cursor: pointer; margin-left: 10px;">Load Data</button>
         </div>
         
         <div id="mainContent" style="display: none;">
@@ -288,30 +290,46 @@
         function loadCSV() {
             showLoading();
             
-            Papa.parse('./smhidata.csv', {
-                download: true,
-                delimiter: ';',
-                skipEmptyLines: true,
-                complete: function(results) {
-                    try {
-                        const data = parseCSVData(results.data);
-                        if (data.length > 0) {
-                            globalData = data;
-                            updateDashboard(data);
-                            showContent();
-                        } else {
-                            showError();
-                        }
-                    } catch (error) {
-                        console.error('Error parsing CSV:', error);
-                        showError();
+            // Try multiple loading methods for better browser compatibility
+            const csvPath = './smhidata.csv';
+            
+            // Method 1: PapaParse with explicit fetch
+            fetch(csvPath)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                },
-                error: function(error) {
-                    console.error('Error loading CSV:', error);
-                    showError();
-                }
-            });
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        delimiter: ';',
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            try {
+                                const data = parseCSVData(results.data);
+                                if (data.length > 0) {
+                                    globalData = data;
+                                    updateDashboard(data);
+                                    showContent();
+                                } else {
+                                    showFallbackUpload();
+                                }
+                            } catch (error) {
+                                console.error('Error parsing CSV:', error);
+                                showFallbackUpload();
+                            }
+                        },
+                        error: function(error) {
+                            console.error('Error parsing CSV:', error);
+                            showFallbackUpload();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching CSV:', error);
+                    showFallbackUpload();
+                });
         }
 
         function parseCSVData(rawData) {
