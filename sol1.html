@@ -72,6 +72,39 @@
             color: #2c3e50;
         }
         
+        .file-upload {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .file-input-wrapper:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+        
+        .file-input-label {
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
         .dashboard {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -166,6 +199,15 @@
             text-align: center;
         }
         
+        .instructions {
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
         @media (max-width: 768px) {
             .dashboard {
                 grid-template-columns: 1fr;
@@ -213,14 +255,25 @@
             </div>
         </div>
         
-        <div id="loadingIndicator" class="loading">
+        <div id="instructions" class="instructions" style="display: none;">
+            <h3>Fallback Option</h3>
+            <p>If automatic loading fails, you can manually select your CSV file:</p>
+            <div class="file-upload">
+                <div class="file-input-wrapper">
+                    <input type="file" id="csvFile" accept=".csv" />
+                    <label for="csvFile" class="file-input-label">📁 Select CSV File (smhidata.csv)</label>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="loading" style="display: none;">
             <div class="loading-spinner"></div>
-            <div>Loading CSV data from smhidata.csv...</div>
+            <div>Processing CSV data...</div>
         </div>
         
         <div id="errorMessage" class="error" style="display: none;">
             <h3>Error Loading Data</h3>
-            <p>Could not load smhidata.csv. Please ensure the file exists and the path is correct.</p>
+            <p id="errorText">Please check your CSV file format and try again.</p>
         </div>
         
         <div id="mainContent" style="display: none;">
@@ -271,13 +324,22 @@
             document.getElementById('loadingIndicator').style.display = 'block';
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
         }
 
         function showError(error) {
             document.getElementById('loadingIndicator').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'block';
             document.getElementById('mainContent').style.display = 'none';
-            // Also log the detailed error to the console for debugging
+            document.getElementById('instructions').style.display = 'none';
+            
+            var errorText = document.getElementById('errorText');
+            if (error && error.message) {
+                errorText.textContent = error.message;
+            } else {
+                errorText.textContent = 'An error occurred while processing the file. Please check the file format and try again.';
+            }
+            
             console.error('Error details:', error);
         }
 
@@ -285,31 +347,27 @@
             document.getElementById('loadingIndicator').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('instructions').style.display = 'none';
         }
 
-        function loadCSV() {
+        function loadCSVFromFile(file) {
             showLoading();
             
-            // *** THE FIX IS HERE ***
-            // Changed './smhidata.csv' to 'smhidata.csv' for better cross-browser compatibility
-            Papa.parse('smhidata.csv', {
-                download: true,
+            Papa.parse(file, {
                 delimiter: ';',
                 skipEmptyLines: true,
                 complete: function(results) {
                     try {
-                        // Check if PapaParse actually returned data
                         if (!results || !results.data || results.data.length === 0) {
                             throw new Error("CSV file is empty or could not be parsed correctly.");
                         }
 
-                        const data = parseCSVData(results.data);
+                        var data = parseCSVData(results.data);
                         if (data.length > 0) {
                             globalData = data;
                             updateDashboard(data);
                             showContent();
                         } else {
-                            // This case means the file loaded, but your parsing logic found no valid data rows.
                             throw new Error("CSV file was loaded, but no valid data rows were found after parsing.");
                         }
                     } catch (error) {
@@ -317,45 +375,133 @@
                         showError(error);
                     }
                 },
-                error: function(error, file) {
-                    console.error('Error loading CSV file:', error, file);
+                error: function(error) {
+                    console.error('Error parsing CSV file:', error);
                     showError(error);
                 }
             });
         }
 
-        function parseCSVData(rawData) {
-            const records = [];
-            let dataStarted = false;
+        function loadCSVFromURL() {
+            showLoading();
             
-            for (let i = 0; i < rawData.length; i++) {
-                const row = rawData[i];
+            // Try multiple possible paths for better compatibility
+            var possiblePaths = [
+                './smhidata.csv',
+                'smhidata.csv',
+                '/smhidata.csv'
+            ];
+            
+            var currentPathIndex = 0;
+            
+            function tryNextPath() {
+                if (currentPathIndex >= possiblePaths.length) {
+                    console.error('All CSV loading attempts failed');
+                    showFallbackOption();
+                    return;
+                }
+                
+                var currentPath = possiblePaths[currentPathIndex];
+                console.log('Trying to load CSV from:', currentPath);
+                
+                // Use XMLHttpRequest for better cross-browser compatibility
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', currentPath, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            // Success - parse the CSV
+                            Papa.parse(xhr.responseText, {
+                                delimiter: ';',
+                                skipEmptyLines: true,
+                                complete: function(results) {
+                                    try {
+                                        if (!results || !results.data || results.data.length === 0) {
+                                            throw new Error("CSV file is empty or could not be parsed correctly.");
+                                        }
+
+                                        var data = parseCSVData(results.data);
+                                        if (data.length > 0) {
+                                            globalData = data;
+                                            updateDashboard(data);
+                                            showContent();
+                                        } else {
+                                            throw new Error("CSV file was loaded, but no valid data rows were found after parsing.");
+                                        }
+                                    } catch (error) {
+                                        console.error('Error processing CSV data:', error);
+                                        currentPathIndex++;
+                                        tryNextPath();
+                                    }
+                                },
+                                error: function(error) {
+                                    console.error('Error parsing CSV:', error);
+                                    currentPathIndex++;
+                                    tryNextPath();
+                                }
+                            });
+                        } else {
+                            console.error('HTTP Error:', xhr.status, 'for path:', currentPath);
+                            currentPathIndex++;
+                            tryNextPath();
+                        }
+                    }
+                };
+                xhr.onerror = function() {
+                    console.error('Network error loading:', currentPath);
+                    currentPathIndex++;
+                    tryNextPath();
+                };
+                xhr.send();
+            }
+            
+            tryNextPath();
+        }
+        
+        function showFallbackOption() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('instructions').style.display = 'block';
+        }
+
+        function parseCSVData(rawData) {
+            var records = [];
+            var dataStarted = false;
+            
+            for (var i = 0; i < rawData.length; i++) {
+                var row = rawData[i];
                 
                 // Skip header rows until we find data rows
-                if (row.length >= 3 && row[0] && row[0].includes('-') && row[1] && row[1].includes(':')) {
+                if (row.length >= 3 && row[0] && row[0].indexOf('-') !== -1 && row[1] && row[1].indexOf(':') !== -1) {
                     dataStarted = true;
                 }
                 
                 if (dataStarted && row.length >= 3) {
                     try {
-                        const dateStr = row[0].trim();
-                        const timeStr = row[1].trim();
-                        const irradianceStr = row[2].trim();
+                        var dateStr = row[0] ? row[0].trim() : '';
+                        var timeStr = row[1] ? row[1].trim() : '';
+                        var irradianceStr = row[2] ? row[2].trim() : '';
                         
                         if (!irradianceStr || irradianceStr === '') continue;
                         
-                        const irradiance = parseFloat(irradianceStr);
+                        var irradiance = parseFloat(irradianceStr);
                         if (isNaN(irradiance)) continue;
                         
-                        const date = new Date(dateStr + 'T' + timeStr);
-                        if (isNaN(date.getTime())) continue;
+                        // More robust date parsing for Edge compatibility
+                        var date = new Date(dateStr + 'T' + timeStr);
+                        if (isNaN(date.getTime())) {
+                            // Try alternative date format
+                            date = new Date(dateStr + ' ' + timeStr);
+                            if (isNaN(date.getTime())) continue;
+                        }
                         
                         records.push({
-                            date,
+                            date: date,
                             year: date.getFullYear(),
                             month: date.getMonth(),
                             hour: date.getHours(),
-                            irradiance
+                            irradiance: irradiance
                         });
                     } catch (error) {
                         console.warn('Skipping invalid row:', row, error);
@@ -375,40 +521,46 @@
         }
 
         function updateStats(records) {
-            const completeRecords = records.filter(r => r.year < 2025);
+            var completeRecords = records.filter(function(r) { return r.year < 2025; });
             
-            const totalRecords = completeRecords.length;
-            const validRecords = completeRecords.filter(r => r.irradiance > 0);
-            const avgIrradiance = validRecords.length > 0 ? 
-                validRecords.reduce((sum, r) => sum + r.irradiance, 0) / validRecords.length : 0;
-            const maxIrradiance = completeRecords.length > 0 ? Math.max(...completeRecords.map(r => r.irradiance)) : 0;
-            const years = new Set(completeRecords.map(r => r.year));
-            const minYear = Math.min(...years);
-            const maxYear = Math.max(...years);
+            var totalRecords = completeRecords.length;
+            var validRecords = completeRecords.filter(function(r) { return r.irradiance > 0; });
+            var avgIrradiance = validRecords.length > 0 ? 
+                validRecords.reduce(function(sum, r) { return sum + r.irradiance; }, 0) / validRecords.length : 0;
+            var maxIrradiance = completeRecords.length > 0 ? 
+                Math.max.apply(Math, completeRecords.map(function(r) { return r.irradiance; })) : 0;
+            
+            var years = {};
+            completeRecords.forEach(function(r) {
+                years[r.year] = true;
+            });
+            var yearKeys = Object.keys(years);
+            var minYear = yearKeys.length > 0 ? Math.min.apply(Math, yearKeys.map(Number)) : 0;
+            var maxYear = yearKeys.length > 0 ? Math.max.apply(Math, yearKeys.map(Number)) : 0;
             
             document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
             document.getElementById('avgIrradiance').textContent = avgIrradiance.toFixed(1);
             document.getElementById('maxIrradiance').textContent = maxIrradiance.toFixed(1);
-            document.getElementById('dataYears').textContent = years.size;
-            document.getElementById('dataPeriod').textContent = `${minYear} - ${maxYear}`;
+            document.getElementById('dataYears').textContent = yearKeys.length;
+            document.getElementById('dataPeriod').textContent = minYear + ' - ' + maxYear;
         }
 
         function createYearlyChart(records) {
-            const yearlyTotals = {};
+            var yearlyTotals = {};
             
-            const filteredRecords = records.filter(record => record.year < 2025);
+            var filteredRecords = records.filter(function(record) { return record.year < 2025; });
             
-            filteredRecords.forEach(record => {
+            filteredRecords.forEach(function(record) {
                 if (!yearlyTotals[record.year]) {
                     yearlyTotals[record.year] = 0;
                 }
                 yearlyTotals[record.year] += record.irradiance;
             });
             
-            const years = Object.keys(yearlyTotals).sort();
-            const totals = years.map(year => yearlyTotals[year] / 1000);
+            var years = Object.keys(yearlyTotals).sort();
+            var totals = years.map(function(year) { return yearlyTotals[year] / 1000; });
             
-            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            var ctx = document.getElementById('yearlyChart').getContext('2d');
             
             if (charts.yearly) charts.yearly.destroy();
             
@@ -460,23 +612,23 @@
         }
 
         function createMonthlyChart(records) {
-            const filteredRecords = records.filter(record => record.year < 2025);
+            var filteredRecords = records.filter(function(record) { return record.year < 2025; });
             
-            const monthlyTotals = new Array(12).fill(0);
-            const monthlyCounts = new Array(12).fill(0);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+            var monthlyTotals = new Array(12).fill(0);
+            var monthlyCounts = new Array(12).fill(0);
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             
-            filteredRecords.forEach(record => {
+            filteredRecords.forEach(function(record) {
                 monthlyTotals[record.month] += record.irradiance;
                 monthlyCounts[record.month]++;
             });
             
-            const monthlyAverages = monthlyTotals.map((total, i) => 
-                monthlyCounts[i] > 0 ? total / monthlyCounts[i] : 0
-            );
+            var monthlyAverages = monthlyTotals.map(function(total, i) {
+                return monthlyCounts[i] > 0 ? total / monthlyCounts[i] : 0;
+            });
             
-            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            var ctx = document.getElementById('monthlyChart').getContext('2d');
             
             if (charts.monthly) charts.monthly.destroy();
             
@@ -519,22 +671,25 @@
         }
 
         function createHourlyChart(records) {
-            const filteredRecords = records.filter(record => record.year < 2025);
+            var filteredRecords = records.filter(function(record) { return record.year < 2025; });
             
-            const hourlyTotals = new Array(24).fill(0);
-            const hourlyCounts = new Array(24).fill(0);
-            const hours = Array.from({length: 24}, (_, i) => i + ':00');
+            var hourlyTotals = new Array(24).fill(0);
+            var hourlyCounts = new Array(24).fill(0);
+            var hours = [];
+            for (var i = 0; i < 24; i++) {
+                hours.push(i + ':00');
+            }
             
-            filteredRecords.forEach(record => {
+            filteredRecords.forEach(function(record) {
                 hourlyTotals[record.hour] += record.irradiance;
                 hourlyCounts[record.hour]++;
             });
             
-            const hourlyAverages = hourlyTotals.map((total, i) => 
-                hourlyCounts[i] > 0 ? total / hourlyCounts[i] : 0
-            );
+            var hourlyAverages = hourlyTotals.map(function(total, i) {
+                return hourlyCounts[i] > 0 ? total / hourlyCounts[i] : 0;
+            });
             
-            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            var ctx = document.getElementById('hourlyChart').getContext('2d');
             
             if (charts.hourly) charts.hourly.destroy();
             
@@ -577,8 +732,18 @@
             });
         }
 
+        // File input event listener
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                loadCSVFromFile(file);
+            }
+        });
+
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadCSV();
+            // Try to load CSV automatically first
+            loadCSVFromURL();
         });
     </script>
 </body>
