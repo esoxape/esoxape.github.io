@@ -5,8 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global Irradiance W/m²</title>
+  
   <!-- Include the Chart.js library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- NEW: Include the Chart.js DataLabels plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
   <!-- CSS styles for the page -->
   <style>
     body {
@@ -85,6 +90,9 @@
 
   <!-- JavaScript logic for fetching data and drawing the chart -->
   <script>
+    // NEW: Register the DataLabels plugin globally
+    Chart.register(ChartDataLabels);
+
     let chartInstance = null;
     let selectedStationId = "105285"; // Default station ID is Borlänge
 
@@ -138,8 +146,6 @@
         throw error;
       }
     };
-
-
 
     const processData = (data, timeRange) => {
       const processedData = {};
@@ -216,20 +222,36 @@
           datasets: [{
             label: stationName1,
             data: values1,
-            backgroundColor: "rgba(255, 99, 132, 0.5)", // Reddish
+            backgroundColor: "rgba(255, 99, 132, 0.5)",
             borderColor: "rgba(255, 99, 132, 1)",
             borderWidth: 1,
+            // NEW: Specific settings for labels on this dataset
+            datalabels: {
+              align: 'end',
+              anchor: 'end'
+            }
           }, {
             label: stationName2,
             data: values2,
-            backgroundColor: "rgba(54, 162, 235, 0.5)", // Bluish
+            backgroundColor: "rgba(54, 162, 235, 0.5)",
             borderColor: "rgba(54, 162, 235, 1)",
             borderWidth: 1,
+            // NEW: Specific settings for labels on this dataset
+            datalabels: {
+              align: 'end',
+              anchor: 'end'
+            }
           }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+             // Add padding to top so numbers don't get cut off
+             padding: {
+                top: 30
+             }
+          },
           scales: {
             y: {
               beginAtZero: true,
@@ -250,6 +272,16 @@
             },
           },
           plugins: {
+            // NEW: Configuration for the DataLabels plugin
+            datalabels: {
+              color: '#444',
+              font: {
+                weight: 'bold',
+                size: 11
+              },
+              // Round the numbers so they fit better
+              formatter: Math.round 
+            },
             tooltip: {
               displayColors: true,
               bodyFont: { size: 16, },
@@ -269,19 +301,15 @@
       try {
         setStatus("Loading data...");
         
-        // Find the select element to get the chosen station's name
         const stationSelect = document.getElementById("stationSelect");
         const selectedStationName = stationSelect.options[stationSelect.selectedIndex].text;
         
-        // Fetch data for the selected station and the comparison station (Norrköping)
         const rawData1 = await fetchSMHIData(selectedStationId, timeRange);
         const rawData2 = await fetchSMHIData("86655", timeRange); // Norrköping ID
 
-        // Process the raw data into daily/monthly sums
         const processedData1 = processData(rawData1, timeRange);
         const processedData2 = processData(rawData2, timeRange);
 
-        // Draw the graph with the processed data
         drawBarGraph(processedData1, processedData2, selectedStationName, "Norrköping", timeRange);
         
         setStatus("");
@@ -293,14 +321,12 @@
 
     // --- EVENT LISTENERS ---
     
-    // Add an event listener for the station dropdown
     const stationSelect = document.getElementById("stationSelect");
     stationSelect.addEventListener("change", (event) => {
       selectedStationId = event.target.value;
-      init(); // Re-initialize with the default time range ('month')
+      init();
     });
 
-    // Add event listeners for the time range buttons
     document.getElementById("pastWeek").addEventListener("click", () => {
       init("week");
     });
@@ -317,7 +343,7 @@
       init("all");
     });
 
-    // Initial load of the chart when the page is first opened
     init();
   </script>
 </body>
+</html>
